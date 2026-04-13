@@ -64,9 +64,7 @@ def process_line(line, ip_counts, blacklist, conn):
     ip = match.group(1)
     ip_counts[ip] = ip_counts.get(ip, 0) + 1
     count = ip_counts[ip]
-    print(f"[DEBUG] IP={ip} count={count}")
     if count >= THRESHOLD or is_blacklisted(ip, blacklist):
-        print(f"[DEBUG] Threat condition met!")
         c = conn.cursor()
         c.execute("SELECT id FROM threats WHERE ip = ?", (ip,))
         existing = c.fetchone()
@@ -90,7 +88,6 @@ def tail_log(log_file, blacklist, conn):
         while True:
             line = f.readline()
             if line:
-                print(f"[DEBUG] New line detected")
                 process_line(line, ip_counts, blacklist, conn)
             else:
                 time.sleep(0.5)
