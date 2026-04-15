@@ -5,7 +5,11 @@ import sqlite3
 import ipaddress
 import argparse
 import os
+import json
+import smtplib
 from datetime import datetime
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 import pandas as pd
 import joblib
@@ -15,6 +19,7 @@ LOG_FILE = "/var/log/ufw.log"
 DB_FILE = "threats.db"
 FIREHOL_FILE = "firehol_level1.txt"
 MODEL_FILE = "model/model.pkl"
+CONFIG_FILE = "config.json"
 
 THRESHOLD_COUNT = 5
 THRESHOLD_ML = 0.7
@@ -22,6 +27,17 @@ THRESHOLD_ML = 0.7
 blacklist = []
 ip_counts = {}
 model = None
+config = {}
+
+
+def load_config():
+    global config
+    if os.path.exists(CONFIG_FILE):
+        with open(CONFIG_FILE, "r") as f:
+            config = json.load(f)
+    else:
+        config = {"email": {"enabled": False}}
+        print("⚠️ config.json not found, email alerts disabled")
 
 
 def load_blacklist(path):
@@ -44,8 +60,6 @@ def load_blacklist(path):
 def is_blacklisted(ip):
     try:
         addr = ipaddress.ip_address(ip)
-
-        # Ignore private/local/special-use addresses
         if (
             addr.is_private
             or addr.is_loopback
@@ -54,7 +68,6 @@ def is_blacklisted(ip):
             or addr.is_link_local
         ):
             return False
-
         return any(addr in network for network in blacklist)
     except ValueError:
         return False
@@ -103,6 +116,48 @@ def whois_lookup(ip):
         return "Unknown", "Unknown"
 
 
+def send_email_alert(threat_data):
+    email_cfg = config.get("email", {})
+    if not email_cfg.get("enabled", False):
+        return
+
+    try:
+        msg = MIMEMultipart()
+        msg["From"] = email_cfg["sender_email"]
+        msg["To"] = email_cfg["recipient_email"]
+        msg["Subject"] = f"Firewall Threat Detected: {threat_data['ip']}"
+
+        body = f"""
+New firewall threat detected.
+
+IP Address: {threat_data['ip']}
+Source Port: {threat_data['src_port']}
+Destination Port: {threat_data['dst_port']}
+Count: {threat_data['count']}
+Blacklisted: {"YES" if threat_data['blacklisted'] else "NO"}
+ML Probability: {threat_data['ml_prob']:.2f}
+Threat Score: {threat_data['threat_score']:.2f}
+Country: {threat_data['country']}
+ISP: {threat_data['isp']}
+Detected At: {threat_data['detected_at']}
+"""
+
+        msg.attach(MIMEText(body, "plain"))
+
+        server = smtplib.SMTP(email_cfg["smtp_server"], email_cfg["smtp_port"])
+        server.starttls()
+        server.login(email_cfg["sender_email"], email_cfg["sender_password"])
+        server.sendmail(
+            email_cfg["sender_email"],
+            email_cfg["recipient_email"],
+            msg.as_string()
+        )
+        server.quit()
+        print(f"📧 Email alert sent for {threat_data['ip']}")
+    except Exception as e:
+        print(f"❌ Email alert failed: {e}")
+
+
 def process_line(line, conn):
     global ip_counts
 
@@ -146,12 +201,25 @@ def process_line(line, conn):
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (ip, src_port, dst_port, count, blacklisted, ml_prob, threat_score, country, isp, detected_at))
 
-            flag = "YES" if blacklisted else "NO"
             print(
                 f"🚨 [THREAT] {ip:<15} | "
-                f"#{count:2d} | ML:{ml_prob:.2f} | BL:{flag} | "
+                f"#{count:2d} | ML:{ml_prob:.2f} | BL:{'YES' if blacklisted else 'NO'} | "
                 f"Score:{threat_score:.2f} | {country}/{isp}"
             )
+
+            threat_data = {
+                "ip": ip,
+                "src_port": src_port,
+                "dst_port": dst_port,
+                "count": count,
+                "blacklisted": blacklisted,
+                "ml_prob": ml_prob,
+                "threat_score": threat_score,
+                "country": country,
+                "isp": isp,
+                "detected_at": detected_at
+            }
+            send_email_alert(threat_data)
 
         conn.commit()
 
@@ -210,7 +278,6 @@ def cli_threats(limit=10):
             f"{ip:<15} | SPT:{src_port:<5} | DPT:{dst_port:<5} | "
             f"Count:{count:<2} | BL:{bl} | ML:{ml_prob:.2f} | Score:{threat_score:.2f} | {detected_at}"
         )
-
     conn.close()
 
 
@@ -228,6 +295,8 @@ if __name__ == "__main__":
     if args.threats is not None:
         cli_threats(args.threats)
         raise SystemExit
+
+    load_config()
 
     print("Loading ML model...")
     model = joblib.load(MODEL_FILE)
