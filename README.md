@@ -1,61 +1,108 @@
-# firewall-threat-detection
+# Firewall Threat Detection
 
-A real-time network threat detection system for Debian-based Linux systems.
+A real-time firewall log analysis and threat detection system for Debian-based Linux systems.
+
+## Project Status
+
+🚧 **In progress** — university thesis project.
+
+This project focuses on building a lightweight threat detection tool that monitors UFW firewall logs in real time, checks suspicious IP addresses against the FireHOL blacklist, applies a machine learning model for threat scoring, and stores detected threats in a local SQLite database. [file:1]
 
 ## Overview
 
-This project presents the design and implementation of a real-time network threat detection system, distributed as a native Linux `.deb` package. Once installed on a Debian-based machine, the system runs as a background service that continuously reads and parses UFW firewall logs.
+The goal of this project is to provide a simple Linux-based monitoring tool that can be installed and run with minimal configuration. The system is designed for Debian-based environments and currently supports real-time UFW log parsing, blacklist checking, ML-based threat scoring, WHOIS enrichment, SQLite storage, and basic CLI inspection. [file:1]
 
-Log entries are evaluated against the FireHOL IP blacklist, with suspicious IP addresses identified either by exceeding a user-defined appearance threshold or by matching a known malicious subnet. Detected threats are stored in a local SQLite database, and automated whois lookups provide additional context such as country of origin and ISP.
+## Implemented Features
 
-The end goal is a lightweight tool that any user can install with a single command and have running with minimal configuration.
+- Real-time UFW log monitoring [file:1]
+- FireHOL blacklist matching with subnet support [file:1]
+- Random Forest machine learning model for port-based threat scoring [file:1]
+- Combined threat score based on blacklist and ML results [file:1]
+- WHOIS lookup for suspicious public IP addresses [file:1]
+- SQLite database storage for detected threats [file:1]
+- Test mode using `sample_ufw.log` [file:1]
+- Basic CLI commands for threat listing and status checking [file:1]
 
-## Features
+## Planned Features
 
-- Real-time UFW log parsing
-- FireHOL blacklist matching (subnet-aware)
-- Whois lookup for suspicious IPs
-- Local SQLite database for threat history
-- Email alerts on threat detection
-- Command-line interface
+- Email notifications on threat detection [file:1]
+- Extended CLI interface (`fwmonitor status`, `fwmonitor threats`, `fwmonitor report <ip>`) [file:1]
+- `.deb` packaging for easier installation [file:1]
+- Optional local web dashboard [file:1]
 
 ## Requirements
 
-- Debian-based Linux system (Ubuntu 24.04 recommended)
-- Python 3.12+
-- UFW enabled and logging on
+- Ubuntu 24.04 or another Debian-based Linux distribution [file:1]
+- Python 3.12 [file:1]
+- UFW enabled with logging turned on [file:1]
 
 ## Setup
 
-### 1. Enable UFW logging
 ```bash
+# Clone the repository
+git clone https://github.com/LejlaDer/firewall-threat-detection.git
+cd firewall-threat-detection
+
+# Create and activate virtual environment
+python3 -m venv ~/fwmonitor-env
+source ~/fwmonitor-env/bin/activate
+
+# Install dependencies
+pip install requests ipwhois scikit-learn pandas joblib
+
+# Enable UFW and logging
 sudo ufw enable
 sudo ufw logging on
 ```
 
-### 2. Clone the repository
+## Usage
+
+### Train the model
+
 ```bash
-git clone https://github.com/LejlaDer/firewall-threat-detection.git
-cd firewall-threat-detection
+python3 src/train_model.py
 ```
 
-### 3. Create virtual environment and install dependencies
+### Run test mode
+
 ```bash
-python3 -m venv ~/fwmonitor-env
-source ~/fwmonitor-env/bin/activate
-pip install requests ipwhois
+python3 src/monitor.py --test
 ```
 
-### 4. Download FireHOL blacklist
+### Show detected threats
+
 ```bash
-wget -O firehol_level1.txt https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level1.netset
+python3 src/monitor.py --threats 10
 ```
 
-### 5. Run
+### Show total threat count
+
 ```bash
-python3 detector.py
+python3 src/monitor.py --status
 ```
 
-## Project Status
+### Run real-time monitoring
 
-Currently in development as a university thesis project. This repository contains the initial proof of concept.
+```bash
+python3 src/monitor.py
+```
+
+## Project Structure
+
+```bash
+firewall-threat-detection/
+├── src/
+│   ├── monitor.py
+│   └── train_model.py
+├── model/
+│   └── model.pkl
+├── data/
+│   └── firewall_data.csv
+├── sample_ufw.log
+├── threats.db
+└── README.md
+```
+
+## Notes
+
+This repository is currently under active development as part of a university thesis project. The implementation is still being extended and some planned features are not yet finished. [file:1]
