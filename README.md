@@ -6,7 +6,7 @@ A real-time firewall log analysis and threat detection system for Debian-based L
 
 🚧 **In progress** — university thesis project.
 
-This project focuses on building a lightweight threat detection tool that monitors UFW firewall logs in real time, checks suspicious IP addresses against the FireHOL blacklist, applies a machine learning model for threat scoring, and stores detected threats in a local SQLite database. [file:1]
+This project focuses on building a lightweight threat detection tool that monitors UFW firewall logs in real time, checks suspicious IP addresses against the FireHOL blacklist, applies a machine learning model for threat scoring, and stores detected threats in a local SQLite database.
 
 ## Overview
 
