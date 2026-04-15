@@ -10,31 +10,31 @@ This project focuses on building a lightweight threat detection tool that monito
 
 ## Overview
 
-The goal of this project is to provide a simple Linux-based monitoring tool that can be installed and run with minimal configuration. The system is designed for Debian-based environments and currently supports real-time UFW log parsing, blacklist checking, ML-based threat scoring, WHOIS enrichment, SQLite storage, and basic CLI inspection. [file:1]
+The goal of this project is to provide a simple Linux-based monitoring tool that can be installed and run with minimal configuration. The system is designed for Debian-based environments and currently supports real-time UFW log parsing, blacklist checking, ML-based threat scoring, WHOIS enrichment, SQLite storage, and basic CLI inspection. 
 
 ## Implemented Features
 
-- Real-time UFW log monitoring [file:1]
-- FireHOL blacklist matching with subnet support [file:1]
-- Random Forest machine learning model for port-based threat scoring [file:1]
-- Combined threat score based on blacklist and ML results [file:1]
-- WHOIS lookup for suspicious public IP addresses [file:1]
-- SQLite database storage for detected threats [file:1]
-- Test mode using `sample_ufw.log` [file:1]
-- Basic CLI commands for threat listing and status checking [file:1]
+- Real-time UFW log monitoring 
+- FireHOL blacklist matching with subnet support 
+- Random Forest machine learning model for port-based threat scoring 
+- Combined threat score based on blacklist and ML results 
+- WHOIS lookup for suspicious public IP addresses 
+- SQLite database storage for detected threats
+- Test mode using `sample_ufw.log` 
+- Basic CLI commands for threat listing and status checking
 
 ## Planned Features
 
-- Email notifications on threat detection [file:1]
-- Extended CLI interface (`fwmonitor status`, `fwmonitor threats`, `fwmonitor report <ip>`) [file:1]
-- `.deb` packaging for easier installation [file:1]
-- Optional local web dashboard [file:1]
+- Email notifications on threat detection 
+- Extended CLI interface (`fwmonitor status`, `fwmonitor threats`, `fwmonitor report <ip>`
+- `.deb` packaging for easier installation 
+- Optional local web dashboard 
 
 ## Requirements
 
-- Ubuntu 24.04 or another Debian-based Linux distribution [file:1]
-- Python 3.12 [file:1]
-- UFW enabled with logging turned on [file:1]
+- Ubuntu 24.04 or another Debian-based Linux distribution 
+- Python 3.12 
+- UFW enabled with logging turned on 
 
 ## Setup
 
@@ -105,4 +105,4 @@ firewall-threat-detection/
 
 ## Notes
 
-This repository is currently under active development as part of a university thesis project. The implementation is still being extended and some planned features are not yet finished. [file:1]
+This repository is currently under active development as part of a university thesis project. The implementation is still being extended and some planned features are not yet finished.
