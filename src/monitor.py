@@ -223,7 +223,6 @@ def process_line(line, conn):
 
         conn.commit()
 
-
 def tail_log(log_file, conn, test_mode=False):
     print(f"🔍 Monitoring {log_file}...")
     print("Press Ctrl+C to stop.")

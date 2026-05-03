@@ -18,8 +18,8 @@ print(df.isnull().sum())
 
 # ── Feature Selection ──────────────────────────────────────────
 # UFW logs only record individual packets, not full sessions.
-# Session-level features (Bytes, Packets, Elapsed Time, etc.)
-# are not available in UFW log format and are therefore excluded.
+# Session-level features (Bytes, Packets, Elapsed Time...)
+# are not available in UFW log format and are excluded.
 # Only Source Port and Destination Port are consistently present
 # in every UFW log entry and are retained for model training.
 

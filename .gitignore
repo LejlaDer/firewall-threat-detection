@@ -2,3 +2,4 @@ firehol_leve1.txt
 threats.db
 data/
 model/model.pkl
+config.json
