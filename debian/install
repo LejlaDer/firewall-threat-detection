@@ -1,0 +1,6 @@
+src/monitor.py usr/lib/firewall-threat-detection/src/
+src/detector_poc.py usr/lib/firewall-threat-detection/src/
+src/train_model.py usr/lib/firewall-threat-detection/src/
+model/model.pkl usr/lib/firewall-threat-detection/model/
+firehol_level1.txt usr/lib/firewall-threat-detection/
+config.example.json usr/lib/firewall-threat-detection/

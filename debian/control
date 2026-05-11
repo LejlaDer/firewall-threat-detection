@@ -1,0 +1,14 @@
+Source: firewall-threat-detection
+Section: net
+Priority: optional
+Maintainer: Lejla Dervisevic <derviseviclejla3@gmail.com>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.6.0
+
+Package: firewall-threat-detection
+Architecture: all
+Depends: python3, python3-sklearn, python3-numpy, python3-requests
+Description: Real-time firewall log analysis and threat detection
+ A lightweight tool for Debian-based Linux systems that monitors UFW logs,
+ detects suspicious activity using FireHOL blacklists and a Random Forest
+ ML model, stores threats in SQLite, and sends email alerts.
