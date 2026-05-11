@@ -52,6 +52,16 @@ sudo ufw logging on
 
 Copy `.env.example` to `.env` and fill in your SMTP credentials and recipient email.
 
+## Updating
+
+### Option A — APT
+sudo apt update && sudo apt upgrade firewall-threat-detection
+
+### Option B — Manual
+cd firewall-threat-detection
+git pull
+pip install -r requirements.txt
+
 ## Usage
 
 ```bash
