@@ -15,6 +15,7 @@ import pandas as pd
 import joblib
 from ipwhois import IPWhois
 
+
 LOG_FILE = "/var/log/ufw.log"
 DB_FILE = "threats.db"
 FIREHOL_FILE = "firehol_level1.txt"
@@ -37,7 +38,7 @@ def load_config():
             config = json.load(f)
     else:
         config = {"email": {"enabled": False}}
-        print("⚠️ config.json not found, email alerts disabled")
+        print("⚠️  config.json not found — email alerts disabled")
 
 
 def load_blacklist(path):
@@ -52,9 +53,9 @@ def load_blacklist(path):
                         blacklist.append(ipaddress.ip_network(line, strict=False))
                     except ValueError:
                         pass
-        print(f"✅ Loaded {len(blacklist)} blacklisted networks")
+        print(f"  ✅  Loaded {len(blacklist):,} blacklisted networks")
     except FileNotFoundError:
-        print(f"⚠️ Blacklist file not found: {path}")
+        print(f"⚠️  Blacklist file not found: {path}")
 
 
 def is_blacklisted(ip):
@@ -130,16 +131,16 @@ def send_email_alert(threat_data):
         body = f"""
 New firewall threat detected.
 
-IP Address: {threat_data['ip']}
-Source Port: {threat_data['src_port']}
-Destination Port: {threat_data['dst_port']}
-Count: {threat_data['count']}
-Blacklisted: {"YES" if threat_data['blacklisted'] else "NO"}
-ML Probability: {threat_data['ml_prob']:.2f}
-Threat Score: {threat_data['threat_score']:.2f}
-Country: {threat_data['country']}
-ISP: {threat_data['isp']}
-Detected At: {threat_data['detected_at']}
+IP Address:    {threat_data['ip']}
+Source Port:   {threat_data['src_port']}
+Destination:   {threat_data['dst_port']}
+Occurrences:   {threat_data['count']}
+Blacklisted:   {"YES" if threat_data['blacklisted'] else "NO"}
+ML Probability:{threat_data['ml_prob']:.2f}
+Threat Score:  {threat_data['threat_score']:.2f}
+Country:       {threat_data['country']}
+ISP:           {threat_data['isp']}
+Detected At:   {threat_data['detected_at']}
 """
 
         msg.attach(MIMEText(body, "plain"))
@@ -153,9 +154,9 @@ Detected At: {threat_data['detected_at']}
             msg.as_string()
         )
         server.quit()
-        print(f"📧 Email alert sent for {threat_data['ip']}")
+        print(f"  📧  Email alert sent for {threat_data['ip']}")
     except Exception as e:
-        print(f"❌ Email alert failed: {e}")
+        print(f"❌  Email alert failed: {e}")
 
 
 def process_line(line, conn):
@@ -201,10 +202,14 @@ def process_line(line, conn):
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (ip, src_port, dst_port, count, blacklisted, ml_prob, threat_score, country, isp, detected_at))
 
+            bl_label = "YES" if blacklisted else "NO "
             print(
-                f"🚨 [THREAT] {ip:<15} | "
-                f"#{count:2d} | ML:{ml_prob:.2f} | BL:{'YES' if blacklisted else 'NO'} | "
-                f"Score:{threat_score:.2f} | {country}/{isp}"
+                f"  🚨  {ip:<15}  │  "
+                f"#{count:<2}  │  "
+                f"ML: {ml_prob:.2f}  │  "
+                f"BL: {bl_label}  │  "
+                f"Score: {threat_score:.2f}  │  "
+                f"{country} / {isp}"
             )
 
             threat_data = {
@@ -223,21 +228,28 @@ def process_line(line, conn):
 
         conn.commit()
 
-def tail_log(log_file, conn, test_mode=False):
-    print(f"🔍 Monitoring {log_file}...")
-    print("Press Ctrl+C to stop.")
 
+def tail_log(log_file, conn, test_mode=False):
     if test_mode:
-        print("🧪 Test mode - using sample_ufw.log")
+        print()
+        print("  🧪  Test mode — processing sample_ufw.log")
+        print("  " + "─" * 60)
         if os.path.exists("sample_ufw.log"):
             with open("sample_ufw.log", "r") as sample_f:
                 for line in sample_f:
                     process_line(line, conn)
                     time.sleep(0.2)
-            print("✅ Test completed!")
+            print("  " + "─" * 60)
+            print("  ✅  Test completed!")
         else:
-            print("❌ sample_ufw.log not found!")
+            print("  ❌  sample_ufw.log not found!")
         return
+
+    print()
+    print(f"  🔍  Monitoring {log_file}")
+    print("  " + "─" * 60)
+    print("       Press Ctrl+C to stop")
+    print("  " + "─" * 60)
 
     with open(log_file, "r") as f:
         f.seek(0, 2)
@@ -254,8 +266,20 @@ def cli_status():
     c = conn.cursor()
     c.execute("SELECT COUNT(*) FROM threats")
     total = c.fetchone()[0]
-    print(f"📊 Total threats detected: {total}")
+    c.execute("SELECT COUNT(*) FROM threats WHERE blacklisted = 1")
+    bl_count = c.fetchone()[0]
+    c.execute("SELECT MAX(detected_at) FROM threats")
+    last = c.fetchone()[0] or "—"
     conn.close()
+
+    print()
+    print("  📊  System Status")
+    print("  " + "─" * 40)
+    print(f"  Total threats detected:   {total}")
+    print(f"  Blacklisted IPs:          {bl_count}")
+    print(f"  Last detected:            {last[:19]}")
+    print("  " + "─" * 40)
+    print()
 
 
 def cli_threats(limit=10):
@@ -268,23 +292,68 @@ def cli_threats(limit=10):
         LIMIT ?
     """, (limit,))
     rows = c.fetchall()
-
-    print(f"\n🚨 Last {limit} threats:")
-    print("-" * 110)
-    for ip, src_port, dst_port, count, blacklisted, ml_prob, threat_score, detected_at in rows:
-        bl = "YES" if blacklisted else "NO"
-        print(
-            f"{ip:<15} | SPT:{src_port:<5} | DPT:{dst_port:<5} | "
-            f"Count:{count:<2} | BL:{bl} | ML:{ml_prob:.2f} | Score:{threat_score:.2f} | {detected_at}"
-        )
     conn.close()
+
+    COL_W = 118
+    print()
+    print(f"  🚨  Last {limit} detected threats")
+    print("  " + "─" * COL_W)
+    print(
+        f"  {'IP Address':<16}  │  {'SPT':<6}  │  {'DPT':<6}  │  "
+        f"{'Count':<6}  │  {'BL':<4}  │  {'ML Prob':<8}  │  {'Score':<7}  │  {'Detected At'}"
+    )
+    print("  " + "─" * COL_W)
+
+    if not rows:
+        print("  No threats recorded yet.")
+    else:
+        for ip, src_port, dst_port, count, blacklisted, ml_prob, threat_score, detected_at in rows:
+            bl = "YES" if blacklisted else "NO "
+            print(
+                f"  {ip:<16}  │  {src_port:<6}  │  {dst_port:<6}  │  "
+                f"{count:<6}  │  {bl:<4}  │  {ml_prob:<8.2f}  │  {threat_score:<7.2f}  │  {detected_at}"
+            )
+
+    print("  " + "─" * COL_W)
+    print()
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Firewall Threat Monitor")
-    parser.add_argument("--test", action="store_true", help="Run test mode with sample_ufw.log")
-    parser.add_argument("--status", action="store_true", help="Show total threat count")
-    parser.add_argument("--threats", type=int, help="Show last N threats")
+    parser = argparse.ArgumentParser(
+        prog="monitor.py",
+        description=(
+            "Firewall Threat Detection — real-time UFW log analyser.\n\n"
+            "Monitors /var/log/ufw.log, scores suspicious IPs using a Random Forest\n"
+            "ML model and the FireHOL blacklist, and stores confirmed threats in a\n"
+            "local SQLite database with optional email alerts."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Examples:\n"
+            "  python3 src/monitor.py                # start real-time monitoring\n"
+            "  python3 src/monitor.py --test          # run with sample log file\n"
+            "  python3 src/monitor.py --threats 20   # show last 20 threats\n"
+            "  python3 src/monitor.py --status        # show threat summary\n"
+        )
+    )
+
+    parser.add_argument(
+        "--test",
+        action="store_true",
+        help="run in test mode using sample_ufw.log instead of the live log"
+    )
+    parser.add_argument(
+        "--status",
+        action="store_true",
+        help="show a summary of total threats detected and exit"
+    )
+    parser.add_argument(
+        "--threats",
+        type=int,
+        metavar="N",
+        help="show the last N detected threats from the database and exit"
+    )
+
     args = parser.parse_args()
 
     if args.status:
@@ -297,9 +366,14 @@ if __name__ == "__main__":
 
     load_config()
 
-    print("Loading ML model...")
+    print()
+    print("  ╔══════════════════════════════════════════╗")
+    print("  ║     Firewall Threat Detection System     ║")
+    print("  ╚══════════════════════════════════════════╝")
+    print()
+    print("  Loading ML model...")
     model = joblib.load(MODEL_FILE)
-    print("✅ ML model loaded")
+    print("  ✅  ML model loaded")
 
     load_blacklist(FIREHOL_FILE)
     conn = init_db()
@@ -307,6 +381,8 @@ if __name__ == "__main__":
     try:
         tail_log(LOG_FILE, conn, test_mode=args.test)
     except KeyboardInterrupt:
-        print("\n👋 Monitoring stopped.")
+        print()
+        print("  👋  Monitoring stopped.")
+        print()
     finally:
         conn.close()
